@@ -14,7 +14,7 @@ function PromiseZ(fn) {
         if (me.status === PENDING) {
             me.status = FULFILLED;
             me.value = value;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onFulfilledCallbacks.forEach(cb => cb(value));
             });
 
@@ -24,7 +24,7 @@ function PromiseZ(fn) {
         if (me.status === PENDING) {
             me.status = REJECTED;
             me.reason = reason;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onRejectedCallbacks.forEach(cb => cb(reason));
             });
         }
@@ -43,7 +43,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
 
     let promise2 = new PromiseZ((resolve, reject) => {
         if (me.status === FULFILLED) {
-            setTimeout(() => {
+            queueMicrotask(() => {
                 try {
                     let x = onFulfilledCallback(me.value);
                     resolvePromise(promise2, x, resolve, reject);
@@ -52,7 +52,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
                 }
             });
         } else if (me.status === REJECTED) {
-            setTimeout(() => {
+            queueMicrotask(() => {
                 try {
                     let x = onRejectedCallback(me.reason);
                     resolvePromise(promise2, x, resolve, reject); // 这里使用resolve而不是reject

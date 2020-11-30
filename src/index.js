@@ -14,17 +14,16 @@ function PromiseZ(fn) {
         if (me.status === PENDING) {
             me.status = FULFILLED;
             me.value = value;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onFulfilledCallbacks.forEach(cb => cb(value));
             });
-            
         }
     }
     function reject(reason) {
         if (me.status === PENDING) {
             me.status = REJECTED;
             me.reason = reason;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onRejectedCallbacks.forEach(cb => cb(reason));
             });
         }
@@ -48,7 +47,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
     let promise2 = new PromiseZ((resolve, reject) => {
         // 这里的status表示上一个PromiseZ的状态
         if (me.status === FULFILLED) {
-            setTimeout(() => { // onFulfilled 和 onRejected 应该是微任务，用setTimeout模拟
+            queueMicrotask(() => { // onFulfilled 和 onRejected 应该是微任务，用setTimeout模拟
                 try {
                     let x = onFulfilledCallback(me.value);
                     resolvePromise(promise2, x, resolve, reject);
@@ -57,7 +56,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
                 }
             });
         } else if (me.status === REJECTED) {
-            setTimeout(() => {
+            queueMicrotask(() => {
                 try {
                     let x = onRejectedCallback(me.reason);
                     resolvePromise(promise2, x, resolve, reject);

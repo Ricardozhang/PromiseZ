@@ -6,6 +6,10 @@ Promise作为异步编程的一种解决方案，已经变得十分常用。而�
 
 [PromiseA+规范翻译](https://juejin.cn/post/6897093832320811022)
 
+node 版本 v12.10.0
+
+Chrome 版本 71+
+
 我们使用 [promises-aplus-tests](https://github.com/promises-aplus/promises-tests) (版本 2.1.2) 来测试 我们写的 PromiseZ
 
 全局安装
@@ -41,7 +45,7 @@ promises-aplus-tests index.js
 
 ```
 new Promise((resolve, reject) => {
-    setTimeout(() => {
+    queueMicrotask(() => {
         resolve('resolved');
     }, 2000);
 }).then(res => {
@@ -119,7 +123,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
 
 ```
 let p = new Promise((res) => {
-    setTimeout(() => {
+    queueMicrotask(() => {
         res(10);
     }, 1000)
 });
@@ -209,7 +213,7 @@ console.log('end');
 使用我们的PromiseZ的输出顺序为 start pending then end
 在执行 then方法时, 状态为pending，所以将我们立刻执行了onFulfilledCallback 推入数组队列中。当执行resolve1 后，状态发生变更，立刻将队列中的所有方法都执行，导致不符合预期。
 
-为解决以上问题，我们使用setTimeout来模拟 微任务
+为解决以上问题，我们使用queueMicrotask来实现微任务。queueMicrotask 这个Api还比较新，也可以使用setTimeout来模拟
 
 ```diff
 function PromiseZ(fn) {
@@ -218,7 +222,7 @@ function PromiseZ(fn) {
         if (me.status === PENDING) {
             me.status = FULFILLED;
             me.value = value;
-+           setTimeout(() => {
++           queueMicrotask(() => {
                 me.onFulfilledCallbacks.forEach(cb => cb(value));
 +           });
            
@@ -228,7 +232,7 @@ function PromiseZ(fn) {
         if (me.status === PENDING) {
             me.status = REJECTED;
             me.reason = reason;
-+           setTimeout(() => {
++           queueMicrotask(() => {
                 me.onRejectedCallbacks.forEach(cb => cb(reason));
 +           });
         }
@@ -238,11 +242,11 @@ function PromiseZ(fn) {
 PromiseZ.prototype.then = function (onFulfilled, onRejected) {
     /** 省略 **/
     if (me.status === FULFILLED) {
-+       setTimeout(() => {
++       queueMicrotask(() => {
             onFulfilledCallback(me.value);
 +       });
     } else if (me.status === REJECTED) {
-+       setTimeout(() => {
++       queueMicrotask(() => {
             onRejectedCallback(me.reason);
 +       });
     } else {
@@ -269,7 +273,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
     /** 省略 **/
 +   let promise2 = new PromiseZ((resolve, reject) => {
         if (me.status === FULFILLED) {
-            setTimeout(() => {
+            queueMicrotask(() => {
 +               try {
 -                   onFulfilledCallback(me.value);
 +                   let x = onFulfilledCallback(me.value);
@@ -279,7 +283,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
 +               }
             });
         } else if (me.status === REJECTED) {
-            setTimeout(() => {
+            queueMicrotask(() => {
 +               try {
 -                   onRejectedCallback(me.reason);
 +                   let x = onRejectedCallback(me.reason);
@@ -321,7 +325,7 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
 ```
 console.log('start');
 new PromiseZ(res => {
-    setTimeout(() => {
+    queueMicrotask(() => {
         console.log('resolve');
         res(10);
     }, 3000)
@@ -349,7 +353,7 @@ console.log('end');
 console.log('start');
 new Promise((res) => {
     console.log('promise1 pending');
-    setTimeout(() => {
+    queueMicrotask(() => {
         console.log('promise1 resolve');
         res(1);
     }, 2000);
@@ -357,7 +361,7 @@ new Promise((res) => {
     console.log(`then1: ${v}`);
     return new Promise(res => {
         console.log(`promise2 pending: ${v}`);
-        setTimeout(() => {
+        queueMicrotask(() => {
             console.log(`promise2 resolve: ${v}`);
             res(v + 3);
         }, 2000);
@@ -534,7 +538,7 @@ new Promise(res => res()).then(() => {
             // 第一个onFulfilled
             onFulfilled({
                 then: function (onFulfilled) {
-                    setTimeout(function () {
+                    queueMicrotask(function () {
                         onFulfilled('onFulfilled1');
                     }, 0);
                 }

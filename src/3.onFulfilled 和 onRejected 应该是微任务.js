@@ -12,7 +12,7 @@ function PromiseZ(fn) {this.status = PENDING;
         if (me.status === PENDING) {
             me.status = FULFILLED;
             me.value = value;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onFulfilledCallbacks.forEach(cb => cb(value));
             });
             
@@ -22,7 +22,7 @@ function PromiseZ(fn) {this.status = PENDING;
         if (me.status === PENDING) {
             me.status = REJECTED;
             me.reason = reason;
-            setTimeout(() => {
+            queueMicrotask(() => {
                 me.onRejectedCallbacks.forEach(cb => cb(reason));
             });
         }
@@ -39,11 +39,11 @@ PromiseZ.prototype.then = function (onFulfilled, onRejected) {
     const onFulfilledCallback = typeof onFulfilled === 'function' ? onFulfilled : value => value;
     const onRejectedCallback = typeof onRejected === 'function' ? onRejected : reason => { throw reason };
     if (me.status === FULFILLED) {
-        setTimeout(() => {
+        queueMicrotask(() => {
             onFulfilledCallback(me.value);
         });
     } else if (me.status === REJECTED) {
-        setTimeout(() => {
+        queueMicrotask(() => {
             onRejectedCallback(me.reason);
         });
     } else {
